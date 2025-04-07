@@ -26,15 +26,23 @@ export async function apiRequest(
   // Ensure URL is properly prefixed for Vercel environment
   const apiUrl = `${getApiBaseUrl()}${url}`;
   
-  const res = await fetch(apiUrl, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
+  // Add console logs for debugging
+  console.log(`Making API request: ${method} ${apiUrl}`);
+  
+  try {
+    const res = await fetch(apiUrl, {
+      method,
+      headers: data ? { "Content-Type": "application/json" } : {},
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include",
+    });
 
-  await throwIfResNotOk(res);
-  return res;
+    await throwIfResNotOk(res);
+    return res;
+  } catch (error) {
+    console.error('API request failed:', error);
+    throw error;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -46,16 +54,26 @@ export const getQueryFn: <T>(options: {
     // Ensure URL is properly prefixed for Vercel environment
     const apiUrl = `${getApiBaseUrl()}${queryKey[0] as string}`;
     
-    const res = await fetch(apiUrl, {
-      credentials: "include",
-    });
+    // Add console logs for debugging
+    console.log(`Making query request: ${apiUrl}`);
+    
+    try {
+      const res = await fetch(apiUrl, {
+        credentials: "include",
+      });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        return null;
+      }
+
+      await throwIfResNotOk(res);
+      const data = await res.json();
+      console.log(`Query response data:`, data);
+      return data;
+    } catch (error) {
+      console.error('Query request failed:', error);
+      throw error;
     }
-
-    await throwIfResNotOk(res);
-    return await res.json();
   };
 
 export const queryClient = new QueryClient({
